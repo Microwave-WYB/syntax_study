@@ -14,7 +14,11 @@ class Syntax:
     """Defines a syntax for analysis"""
 
     pattern: re.Pattern
-    release_date: date
+    release_date: date | None = None
+
+    def find_in_text(self, text: str) -> Iterator["FoundSyntax"]:
+        """Find syntax in text"""
+        return find_syntax_in_text(text, self)
 
 
 @dataclass
@@ -27,7 +31,7 @@ class FoundSyntax:
     text: str
 
     @property
-    def release_date(self) -> date:
+    def release_date(self) -> date | None:
         return self.syntax.release_date
 
 
@@ -43,7 +47,9 @@ class RepoSummary:
 
     def latest_syntax(self) -> list[FoundSyntax]:
         """Return the latest syntax found"""
-        latest_date = max(syntax.release_date for syntax in self.found_syntaxes)
+        latest_date = max(
+            syntax.release_date for syntax in self.found_syntaxes if syntax.release_date is not None
+        )
         return [
             syntax for syntax in self.found_syntaxes if syntax.syntax.release_date == latest_date
         ]
@@ -117,7 +123,6 @@ class RepoAnalyzer:
                     text = content_file.decoded_content.decode("utf-8")
                     text = remove_comments(text)
                     for syntax in self.syntaxes:
-                        # yield from find_syntax_in_text(text, syntax)
                         yield from (
                             FoundSyntax(s.syntax, content_file.path, s.line, s.text)
                             for s in find_syntax_in_text(text, syntax)

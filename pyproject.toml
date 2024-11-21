@@ -10,6 +10,11 @@ dependencies = [
     "rex",
 ]
 
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.3",
+]
+
 [tool.uv.sources]
 rex = { git = "https://github.com/Microwave-WYB/rex.git" }
 
