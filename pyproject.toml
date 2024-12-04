@@ -3,18 +3,11 @@ name = "rust-syntax"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "pydantic>=2.9.2",
-    "pygithub>=2.5.0",
-    "rex",
-    "rich>=13.9.4",
-]
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.9.2", "pygithub>=2.5.0", "rex", "rich>=13.9.4"]
 
 [tool.uv]
-dev-dependencies = [
-    "pytest>=8.3.3",
-]
+dev-dependencies = ["pytest>=8.3.3"]
 
 [tool.uv.sources]
 rex = { git = "https://github.com/Microwave-WYB/rex.git" }
