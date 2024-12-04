@@ -30,7 +30,7 @@ impl_trait_arg = Syntax(
 )
 impl_trait_return = Syntax(
     pattern=seq(
-        lit("fn") | lit("pub fn") + WS[1:],
+        "fn" | "pub fn" + WS[1:],
         ANY[1:] + WS[:],
         "(" + ANY[:] + ")" + WS[:],
         "->" + WS[:],

@@ -1,5 +1,9 @@
 # Syntax Study
 
+## Data Source
+
+We can find a list of Rust repositories [here](https://github.com/rust-unofficial/awesome-rust?tab=readme-ov-file)
+
 ## Setup
 
 1. Clone the repository

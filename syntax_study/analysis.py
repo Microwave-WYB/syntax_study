@@ -1,16 +1,17 @@
 import re
 from collections.abc import Iterator
 from datetime import date
+from pathlib import Path
 from typing import Self
 
 from github import Github
 from github.Auth import Auth, Login, Token
-from pydantic.dataclasses import dataclass
+from pydantic import BaseModel
 from rex import ANY, seq
+from rich.progress import track
 
 
-@dataclass
-class Syntax:
+class Syntax(BaseModel):
     """Defines a syntax for analysis"""
 
     pattern: re.Pattern
@@ -20,9 +21,11 @@ class Syntax:
         """Find syntax in text"""
         return find_syntax_in_text(text, self)
 
+    def __hash__(self) -> int:
+        return hash(self.pattern.pattern)
 
-@dataclass
-class FoundSyntax:
+
+class FoundSyntax(BaseModel):
     """Information of a syntax found in a file"""
 
     syntax: Syntax
@@ -35,24 +38,17 @@ class FoundSyntax:
         return self.syntax.release_date
 
 
-@dataclass
-class RepoSummary:
+class RepoSummary(BaseModel):
     repo_name: str
-    tags: list[str]
     first_commit_date: date
     last_commit_date: date
     total_commits: int
     stars: int
-    found_syntaxes: list[FoundSyntax]
+    syntaxes: set[Syntax]
 
-    def latest_syntax(self) -> list[FoundSyntax]:
+    def latest_syntax(self) -> Syntax:
         """Return the latest syntax found"""
-        latest_date = max(
-            syntax.release_date for syntax in self.found_syntaxes if syntax.release_date is not None
-        )
-        return [
-            syntax for syntax in self.found_syntaxes if syntax.syntax.release_date == latest_date
-        ]
+        return sorted(self.syntaxes, key=lambda s: s.release_date or date.min)[-1]
 
 
 def remove_comments(text: str) -> str:
@@ -79,7 +75,7 @@ def find_syntax_in_text(text: str, syntax: Syntax) -> Iterator[FoundSyntax]:
     for match in syntax.pattern.finditer(text):
         start, end = match.span()
         line = text.count("\n", 0, start) + 1
-        yield FoundSyntax(syntax, "", line, text[start:end])
+        yield FoundSyntax(syntax=syntax, path="", line=line, text=text[start:end])
 
 
 class RepoAnalyzer:
@@ -117,14 +113,19 @@ class RepoAnalyzer:
         repo = self.github.get_repo(repo_name)
         contents = repo.get_contents(root)
         assert isinstance(contents, list)
-        for content_file in contents:
+        for content_file in track(
+            contents,
+            description=f"Analyzing {repo_name}",
+        ):
             match content_file.type:
                 case "file" if content_file.name.endswith(tuple(self.file_suffixes)):
                     text = content_file.decoded_content.decode("utf-8")
                     text = remove_comments(text)
                     for syntax in self.syntaxes:
                         yield from (
-                            FoundSyntax(s.syntax, content_file.path, s.line, s.text)
+                            FoundSyntax(
+                                syntax=s.syntax, path=content_file.path, line=s.line, text=s.text
+                            )
                             for s in find_syntax_in_text(text, syntax)
                         )
 
@@ -132,3 +133,34 @@ class RepoAnalyzer:
                     dir_contents = repo.get_contents(content_file.path)
                     assert isinstance(dir_contents, list)
                     contents.extend(dir_contents)
+
+    def analyze_repo(
+        self,
+        repo_name: str,
+        root: str = "",
+        output_dir: Path = Path("results"),
+        force_update: bool = False,
+    ) -> RepoSummary:
+        """Analyze a GitHub repository"""
+        assert not output_dir.is_file(), "Output directory must be a directory"
+        if not output_dir.exists():
+            output_dir.mkdir(parents=True)
+
+        output_path = output_dir / f"{repo_name.replace('/', '_')}.json"
+        if output_path.exists() and not force_update:
+            return RepoSummary.model_validate_json(output_path.read_text())
+
+        repo = self.github.get_repo(repo_name)
+        commits = repo.get_commits()
+        first_commit = commits.reversed[0]
+        last_commit = commits[0]
+        summary = RepoSummary(
+            repo_name=repo_name,
+            first_commit_date=first_commit.commit.author.date.date(),
+            last_commit_date=last_commit.commit.author.date.date(),
+            total_commits=repo.get_commits().totalCount,
+            stars=repo.stargazers_count,
+            syntaxes=set([fs.syntax for fs in self.find_syntax_in_repo(repo_name, root)]),
+        )
+        output_path.write_text(summary.model_dump_json(indent=2))
+        return summary
