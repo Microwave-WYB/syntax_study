@@ -14,6 +14,7 @@ from typing_extensions import Self
 class Syntax(BaseModel):
     """Defines a syntax for analysis"""
 
+    name: str
     pattern: re.Pattern
     release_date: date | None = None
 
