@@ -2,13 +2,13 @@ import re
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
-from typing import Self
 
 from github import Github
 from github.Auth import Auth, Login, Token
 from pydantic import BaseModel
 from rex import ANY, seq
 from rich.progress import track
+from typing_extensions import Self
 
 
 class Syntax(BaseModel):
