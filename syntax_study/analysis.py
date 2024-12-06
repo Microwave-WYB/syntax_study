@@ -149,6 +149,7 @@ class RepoAnalyzer:
 
         output_path = output_dir / f"{repo_name.replace('/', '_')}.json"
         if output_path.exists() and not force_update:
+            print(f"Loaded results from {output_path}")
             return RepoSummary.model_validate_json(output_path.read_text())
 
         repo = self.github.get_repo(repo_name)
@@ -164,4 +165,5 @@ class RepoAnalyzer:
             syntaxes=set([fs.syntax for fs in self.find_syntax_in_repo(repo_name, root)]),
         )
         output_path.write_text(summary.model_dump_json(indent=2))
+        print(f"Results saved to {output_path}")
         return summary

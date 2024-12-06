@@ -1,10 +1,14 @@
 from syntax_study.syntaxes import (
+    apit_syntax,
     async_syntax,
     const_generics_syntax,
-    impl_trait_arg,
-    impl_trait_return,
+    gat_syntax,
     into_iterator_syntax,
     legacy_into_iterator_syntax,
+    let_else_syntax,
+    rpit_syntax,
+    rpitit_impl_syntax,
+    rpitit_syntax,
 )
 
 
@@ -44,21 +48,48 @@ def test_into_iterator_syntax() -> None:
     assert legacy_into_iterator_syntax.pattern.findall(code) == []
 
 
-def test_impl_trait_arg() -> None:
+def test_apit_syntax() -> None:
     code = """
     fn parse_csv_document(src: impl BufRead) {
         // implementation
     }
     """
-    assert impl_trait_arg.pattern.findall(code) == ["fn parse_csv_document(src: impl BufRead) {"]
+    assert apit_syntax.pattern.findall(code) == ["fn parse_csv_document(src: impl BufRead) {"]
 
 
-def test_impl_trait_return() -> None:
+def test_rpit_syntax() -> None:
     code = """
     pub fn make_iter() -> impl Iterator<Item=i32> {
         (0..5).filter(|x| x % 2 == 0)
     }
     """
-    assert impl_trait_return.pattern.findall(code) == [
-        "pub fn make_iter() -> impl Iterator<Item=i32> {"
+    assert rpit_syntax.pattern.findall(code) == ["pub fn make_iter() -> impl Iterator<Item=i32> {"]
+
+
+def test_rpitit_syntax() -> None:
+    code = """
+    trait Container {
+        fn items(&self) -> impl Iterator<Item = Widget>;
+    }
+    """
+    assert rpitit_syntax.pattern.findall(code) == [
+        "trait Container {\n" "        fn items(&self) -> impl Iterator<Item = Widget>;",
     ]
+
+
+def test_let_else_syntax() -> None:
+    code = """
+    let PATTERN: TYPE = EXPRESSION else {
+        DIVERGING_CODE;
+    };
+    """
+    assert let_else_syntax.pattern.findall(code) == ["let PATTERN: TYPE = EXPRESSION else {"]
+
+
+def test_gat_syntax() -> None:
+    code = """
+    trait Foo {
+        type Bar<'x>;
+    }
+    """
+    assert gat_syntax.pattern.findall(code) == ["type Bar<'x>;"]

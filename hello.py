@@ -1,18 +1,9 @@
-from datetime import date
-
-from rex import lit
-
-from syntax_study.analysis import RepoAnalyzer, Syntax
-
-# Define a syntax for finding question operators
-question_operator = lit("?").compile()
-question_mark_syntax = Syntax(
-    name="try operator", pattern=question_operator, release_date=date(2016, 11, 10)
-)
+from syntax_study.analysis import RepoAnalyzer
+from syntax_study.syntaxes import ALL_SYNTAXES
 
 # Replace the token with your GitHub token
-analyzer = (
-    RepoAnalyzer.from_token("github...").add_syntax(question_mark_syntax).add_file_suffix(".rs")
-)
+analyzer = RepoAnalyzer.from_token("github...").add_file_suffix(".rs")
+for syntax in ALL_SYNTAXES:
+    analyzer.add_syntax(syntax)
 
-analyzer.analyze_repo("alacritty/alacritty", "alacritty/src")
+analyzer.analyze_repo("alacritty/alacritty", "alacritty/src", force_update=True)

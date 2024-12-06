@@ -14,13 +14,13 @@ try_macro_syntax = Syntax(
 try_operator_syntax = Syntax(
     name="try operator",
     pattern=lit("?").compile(),
-    release_date=date(2016, 1, 1),
+    release_date=date(2016, 11, 10),
 )
 
 # Rust introduced `impl Trait` syntax in version 1.26.
 # https://blog.rust-lang.org/2018/05/10/Rust-1.26.html
-impl_trait_arg = Syntax(
-    name="impl trait argument",
+apit_syntax = Syntax(
+    name="Argument Position impl Trait",
     pattern=seq(
         "fn" | "pub fn" + WS[1:],
         ANY[1:] + WS[:],
@@ -30,14 +30,13 @@ impl_trait_arg = Syntax(
         ANY[1:] + WS[:] + ":" + WS[:],
         "impl" + WS[1:],
         ANY[1:],
-        ")",
-        WS[:],
+        ")" + WS[:],
         "{",
     ).compile(),
-    release_date=date(2018, 5, 1),
+    release_date=date(2018, 5, 10),
 )
-impl_trait_return = Syntax(
-    name="impl trait return",
+rpit_syntax = Syntax(
+    name="Return Position impl Trait",
     pattern=seq(
         "fn" | "pub fn" + WS[1:],
         ANY[1:] + WS[:],
@@ -47,7 +46,42 @@ impl_trait_return = Syntax(
         ANY[1:],
         "{",
     ).compile(),
-    release_date=date(2018, 5, 1),
+    release_date=date(2018, 5, 10),
+)
+
+NON_BRACE = char_cls("{}", negate=True)
+
+# https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits.html#where-the-gaps-lie
+rpitit_syntax = Syntax(
+    name="Return Position impl Trait in Traits",
+    pattern=seq(
+        "trait" + WS[1:],
+        NON_BRACE[1:] + WS[:],  # Trait name and potential generics
+        "{" + WS[:],
+        ANY[:],  # Other potential trait items
+        "fn" + WS[1:],
+        NON_BRACE[1:] + WS[:],  # Function name and parameters
+        "->" + WS[:],
+        "impl" + WS[1:],
+        NON_BRACE[1:],  # The actual return type after impl
+        ";",  # End of trait method declaration
+    ).compile(),
+    release_date=date(2023, 12, 21),
+)
+rpitit_impl_syntax = Syntax(
+    name="Return Position impl Trait Implementation",
+    pattern=seq(
+        "impl" + WS[1:],
+        NON_BRACE[1:] + WS[:],  # Trait name and potential type
+        "{" + WS[:] + ANY[:],  # Other potential impl items
+        "fn" + WS[1:],
+        NON_BRACE[1:] + WS[:],  # Function name and parameters
+        "->" + WS[:],
+        "impl" + WS[1:],
+        NON_BRACE[1:],  # The actual return type after impl
+        "{",  # Start of implementation block
+    ).compile(),
+    release_date=date(2023, 12, 21),
 )
 
 # Rust introduced async/await syntax in version 1.39.
@@ -75,16 +109,59 @@ const_generics_syntax = Syntax(
 # https://blog.rust-lang.org/2021/03/25/Rust-1.51.0.html
 NON_REFERENCE = char_cls("&", negate=True)
 into_iterator_syntax = Syntax(
-    name="into iterator",
+    name="IntoIter",
     pattern=seq(
         "for", WS[1:], NON_REFERENCE[1:], WS[1:], "in", WS[1:], NON_REFERENCE[1:], WS[1:], "{"
     ).compile(),
-    release_date=date(2021, 5, 1),
+    release_date=date(2021, 3, 25),
 )
 legacy_into_iterator_syntax = Syntax(
-    name="legacy into iterator",
+    name="Legacy IntoIter",
     pattern=seq(
         "for", WS[1:], "&", ANY[1:], WS[1:], "in", WS[1:], "&", ANY[1:], WS[1:], "{"
     ).compile(),
-    release_date=date(2015, 1, 1),
 )
+
+# https://blog.rust-lang.org/2022/11/03/Rust-1.65.0.html#let-else-statements
+let_else_syntax = Syntax(
+    name="let else",
+    pattern=seq(
+        "let" + WS[1:],
+        ANY[1:] + WS[:],
+        "=" + WS[:],
+        ANY[1:] + WS[:],
+        "else" + WS[:],
+        "{",
+    ).compile(),
+    release_date=date(2022, 11, 3),
+)
+
+gat_syntax = Syntax(
+    name="Generic Associated Types",
+    pattern=seq(
+        "type" + WS[1:],
+        ANY[1:] + WS[:],
+        "<",
+        ANY[1:],
+        ">",
+        WS[:] + ";",
+    ).compile(),
+    release_date=date(2022, 11, 1),
+)
+
+
+# All syntaxes defined in this module
+ALL_SYNTAXES = [
+    try_macro_syntax,
+    try_operator_syntax,
+    apit_syntax,
+    rpit_syntax,
+    rpitit_syntax,
+    rpitit_impl_syntax,
+    async_syntax,
+    const_generics_syntax,
+    into_iterator_syntax,
+    legacy_into_iterator_syntax,
+    let_else_syntax,
+    gat_syntax,
+]
