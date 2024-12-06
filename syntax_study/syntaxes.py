@@ -5,6 +5,9 @@ from rex import ANY, WS, char_cls, lit, seq
 
 from syntax_study.analysis import Syntax
 
+NON_BRACE = char_cls("{}", negate=True)
+
+
 # The `try!` macro was deprecated in Rust 1.13 and replaced by the `?` operator.
 # https://blog.rust-lang.org/2016/11/10/Rust-1.13.html
 try_macro_syntax = Syntax(
@@ -49,7 +52,6 @@ rpit_syntax = Syntax(
     release_date=date(2018, 5, 10),
 )
 
-NON_BRACE = char_cls("{}", negate=True)
 
 # https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits.html#where-the-gaps-lie
 rpitit_syntax = Syntax(
@@ -149,6 +151,24 @@ gat_syntax = Syntax(
     release_date=date(2022, 11, 1),
 )
 
+# https://blog.rust-lang.org/2024/06/13/Rust-1.79.0.html
+inline_const_syntax = Syntax(
+    name="Inline const expressions",
+    pattern=seq("const" + WS[:], "{").compile(),
+    release_date=date(2024, 6, 13),
+)
+# https://blog.rust-lang.org/2023/06/01/Rust-1.70.0.html
+once_cell = Syntax(
+    name="OnceCell",
+    pattern=seq("OnceCell" + lit("<")[:1]).compile(),
+    release_date=date(2023, 6, 1),
+)
+
+once_lock = Syntax(
+    name="OnceLock",
+    pattern=seq("OnceLock" + WS[:]).compile(),
+    release_date=date(2023, 6, 1),
+)
 
 # All syntaxes defined in this module
 ALL_SYNTAXES = [
@@ -164,4 +184,7 @@ ALL_SYNTAXES = [
     legacy_into_iterator_syntax,
     let_else_syntax,
     gat_syntax,
+    inline_const_syntax,
+    once_cell,
+    once_lock,
 ]

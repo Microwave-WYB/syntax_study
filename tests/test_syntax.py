@@ -3,9 +3,12 @@ from syntax_study.syntaxes import (
     async_syntax,
     const_generics_syntax,
     gat_syntax,
+    inline_const_syntax,
     into_iterator_syntax,
     legacy_into_iterator_syntax,
     let_else_syntax,
+    once_cell,
+    once_lock,
     rpit_syntax,
     rpitit_impl_syntax,
     rpitit_syntax,
@@ -77,6 +80,20 @@ def test_rpitit_syntax() -> None:
     ]
 
 
+def test_rpitit_impl_syntax() -> None:
+    code = """
+    impl Container for Vec<Widget> {
+        fn items(&self) -> impl Iterator<Item = Widget> {
+            self.iter().cloned()
+        }
+    }
+    """
+    assert rpitit_impl_syntax.pattern.findall(code) == [
+        "impl Container for Vec<Widget> {\n"
+        "        fn items(&self) -> impl Iterator<Item = Widget> {",
+    ]
+
+
 def test_let_else_syntax() -> None:
     code = """
     let PATTERN: TYPE = EXPRESSION else {
@@ -93,3 +110,24 @@ def test_gat_syntax() -> None:
     }
     """
     assert gat_syntax.pattern.findall(code) == ["type Bar<'x>;"]
+
+
+def test_inline_const() -> None:
+    code = """
+    let foo = [const { None }; 100];
+    """
+    assert inline_const_syntax.pattern.findall(code) == ["const {"]
+
+
+def test_once_cell_syntax() -> None:
+    code = """
+    static WINNER: OnceCell<&str> = OnceLock::new();
+    """
+    assert once_cell.pattern.findall(code) == ["OnceCell<"]
+
+
+def test_once_lock_syntax() -> None:
+    code = """
+    static WINNER: OnceCell<&str> = OnceLock::new();
+    """
+    assert once_lock.pattern.findall(code) == ["OnceLock"]
