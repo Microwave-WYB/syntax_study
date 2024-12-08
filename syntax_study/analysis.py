@@ -5,7 +5,7 @@ from pathlib import Path
 
 from github import Github
 from github.Auth import Auth, Login, Token
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from rex import ANY, seq
 from rich.progress import track
 from typing_extensions import Self
@@ -39,17 +39,22 @@ class FoundSyntax(BaseModel):
         return self.syntax.release_date
 
 
+class SyntaxSummary(BaseModel):
+    syntax: Syntax
+    count: int
+
+
 class RepoSummary(BaseModel):
     repo_name: str
     first_commit_date: date
     last_commit_date: date
     total_commits: int
     stars: int
-    syntaxes: dict[Syntax, int]
+    syntaxes: list[SyntaxSummary] = Field(default_factory=list)
 
     def latest_syntax(self) -> Syntax:
         """Return the latest syntax found"""
-        return max(self.syntaxes, key=lambda s: s.release_date or date.min)
+        return max(self.syntaxes, key=lambda s: s.syntax.release_date or date.min).syntax
 
 
 def remove_comments(text: str) -> str:
@@ -162,10 +167,15 @@ class RepoAnalyzer:
             last_commit_date=last_commit.commit.author.date.date(),
             total_commits=repo.get_commits().totalCount,
             stars=repo.stargazers_count,
-            syntaxes={},
         )
+        syntax_count_dict: dict[Syntax, int] = {}
         for found_syntax in self.find_syntax_in_repo(repo_name, root):
-            summary.syntaxes[found_syntax.syntax] = summary.syntaxes.get(found_syntax.syntax, 0) + 1
+            syntax_count_dict[found_syntax.syntax] = (
+                syntax_count_dict.get(found_syntax.syntax, 0) + 1
+            )
+        summary.syntaxes = [
+            SyntaxSummary(syntax=syntax, count=count) for syntax, count in syntax_count_dict.items()
+        ]
         output_path.write_text(summary.model_dump_json(indent=2))
         print(f"Results saved to {output_path}")
         return summary
