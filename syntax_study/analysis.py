@@ -45,11 +45,11 @@ class RepoSummary(BaseModel):
     last_commit_date: date
     total_commits: int
     stars: int
-    syntaxes: set[Syntax]
+    syntaxes: dict[Syntax, int]
 
     def latest_syntax(self) -> Syntax:
         """Return the latest syntax found"""
-        return sorted(self.syntaxes, key=lambda s: s.release_date or date.min)[-1]
+        return max(self.syntaxes, key=lambda s: s.release_date or date.min)
 
 
 def remove_comments(text: str) -> str:
@@ -162,8 +162,10 @@ class RepoAnalyzer:
             last_commit_date=last_commit.commit.author.date.date(),
             total_commits=repo.get_commits().totalCount,
             stars=repo.stargazers_count,
-            syntaxes=set([fs.syntax for fs in self.find_syntax_in_repo(repo_name, root)]),
+            syntaxes={},
         )
+        for found_syntax in self.find_syntax_in_repo(repo_name, root):
+            summary.syntaxes[found_syntax.syntax] = summary.syntaxes.get(found_syntax.syntax, 0) + 1
         output_path.write_text(summary.model_dump_json(indent=2))
         print(f"Results saved to {output_path}")
         return summary
